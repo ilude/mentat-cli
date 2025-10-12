@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# VS Code
+.vscode/
+
+# uv
+.venv/

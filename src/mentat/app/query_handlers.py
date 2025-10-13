@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, List
+from typing import Callable
 
 from ..core import Result
 from ..infrastructure import ToolRepository

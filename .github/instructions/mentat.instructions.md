@@ -80,6 +80,25 @@ When asked to **scaffold**, **generate**, or **extend** code:
 
 ---
 
+## Pre-commit discipline (repo policy)
+
+Before committing any changes, always run the local quality gates and fix issues:
+
+```pwsh
+make lint
+make test
+```
+
+Alternatively, run everything in one go:
+
+```pwsh
+make check
+```
+
+Commits should only be made when lint, type-check, and tests are clean.
+
+---
+
 ## Example Prompt Patterns for Copilot
 
 - “Scaffold the Mentat CLI project structure using the architecture defined in this instruction file.”  

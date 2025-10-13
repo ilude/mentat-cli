@@ -6,7 +6,6 @@ from typer.testing import CliRunner
 
 from mentat.cli import app
 
-
 runner = CliRunner()
 
 
@@ -40,6 +39,17 @@ def test_tools_list(tmp_path: Path):
 
 def test_run_tool(tmp_path: Path):
     write_tool(tmp_path, "echo", command="python -c \"import sys; print(' '.join(sys.argv[1:]))\"")
-    result = runner.invoke(app, ["run", "echo", "--tools-dir", str(tmp_path), "--", "hello", "world"])
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "echo",
+            "--tools-dir",
+            str(tmp_path),
+            "--",
+            "hello",
+            "world",
+        ],
+    )
     # run returns the tool's exit code; Typer exit codes don't print, but we expect success
     assert result.exit_code == 0

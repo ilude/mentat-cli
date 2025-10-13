@@ -1,5 +1,5 @@
-from .contracts import Command, Query, Result
 from .bus import CommandBus, QueryBus
+from .contracts import Command, Query, Result
 
 __all__ = [
     "Command",

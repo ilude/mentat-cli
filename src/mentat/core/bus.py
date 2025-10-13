@@ -4,7 +4,6 @@ from typing import Any, Callable, Dict, Type, TypeVar
 
 from .contracts import Command, Query, Result
 
-
 R = TypeVar("R")
 
 

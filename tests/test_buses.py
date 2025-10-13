@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from mentat.core import Command, Query, CommandBus, QueryBus, Result
+from mentat.core import Command, CommandBus, Query, QueryBus, Result
 
 
 @dataclass(slots=True)

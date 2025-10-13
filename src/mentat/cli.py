@@ -5,14 +5,18 @@ from typing import Optional
 
 import typer
 
+from .app import ListTools, RunTool, handle_list_tools, handle_run_tool
 from .config import load_config
 from .core import CommandBus, QueryBus
-from .ioc import Container
 from .infrastructure import FsToolRepository
-from .app import RunTool, ListTools, handle_run_tool, handle_list_tools
-
+from .ioc import Container
 
 app = typer.Typer(add_completion=False, help="Mentat CLI — an agent-driven tool orchestrator")
+
+# Define Typer defaults at module scope to avoid calling in function defaults (ruff B008)
+TOOLS_DIR_OPTION = typer.Option(None, help="Path to tools directory")
+NAME_ARGUMENT = typer.Argument(..., help="Tool name")
+ARGS_ARGUMENT = typer.Argument([], help="Arguments passed to the tool")
 
 
 def bootstrap(tools_dir: Optional[Path] = None) -> Container:
@@ -39,7 +43,7 @@ def bootstrap(tools_dir: Optional[Path] = None) -> Container:
 
 
 @app.command()
-def tools(tools_dir: Optional[Path] = typer.Option(None, help="Path to tools directory")) -> None:
+def tools(tools_dir: Optional[Path] = TOOLS_DIR_OPTION) -> None:
     container = bootstrap(tools_dir)
     bus: QueryBus = container.resolve("query_bus")
     res = bus.ask(ListTools())
@@ -52,9 +56,9 @@ def tools(tools_dir: Optional[Path] = typer.Option(None, help="Path to tools dir
 
 @app.command()
 def run(
-    name: str = typer.Argument(..., help="Tool name"),
-    args: list[str] = typer.Argument([], help="Arguments passed to the tool"),
-    tools_dir: Optional[Path] = typer.Option(None, help="Path to tools directory"),
+    name: str = NAME_ARGUMENT,
+    args: list[str] = ARGS_ARGUMENT,
+    tools_dir: Optional[Path] = TOOLS_DIR_OPTION,
 ) -> None:
     container = bootstrap(tools_dir)
     bus: CommandBus = container.resolve("command_bus")

@@ -1,30 +1,33 @@
-# Commit workflow prompt
+---
+mode: 'agent'
+model: gpt-5-mini
+description: 'Run make lint and make test, then stage and commit using Conventional Commits.'
+---
 
-Note: GitHub prompt files are recognized when stored as YAML with the extension `.prompt.yml` or `.prompt.yaml`. See: https://docs.github.com/en/github-models/use-github-models/storing-prompts-in-github-repositories
+You are a meticulous repository assistant operating in a developer's workspace using PowerShell (pwsh) on Windows.
 
-This Markdown file documents the intent and usage. The actual runnable prompt file is `commit.prompt.yaml` in the same folder.
+Follow this commit workflow strictly:
 
-## Purpose
-Run the pre-commit workflow locally, then create a Conventional Commits message and commit:
-
-1) Run:
+1) Run the pre-commit quality gates locally:
    - `make lint`
    - `make test`
-2) If anything fails, fix the issues minimally and rerun the checks until both pass.
-3) Stage changes: `git add -A`
-4) Create a Conventional Commits message (e.g., `feat: ...`, `fix: ...`, `chore: ...`).
-5) Commit with `git commit -m "<message>"`.
+2) If any check fails, propose minimal edits to fix issues (lint/type errors/tests), apply them, and re-run until both targets pass. Prefer small, targeted changes that preserve behavior.
+3) Stage all changes: `git add -A`
+4) Create a Conventional Commits message derived from the diff. Use types like `feat`, `fix`, `chore`, `docs`, `refactor`, `test`.
+   - Keep the subject concise (≤ 72 chars), imperative mood.
+   - Optionally add a descriptive body and bullets for noteworthy changes.
+   - If provided, incorporate optional inputs:
+     - scope: `${input:scope}`
+     - subject override: `${input:subject}`
+     - body notes (multi-line allowed):
 
-## Parameters
-- `scope` (optional) — additional scope in the commit subject
-- `subject` (optional) — override the generated subject
-- `body` (optional) — extra commit body notes
-
-## How to use in Copilot Chat
-Reference the YAML prompt by name and pass optional variables:
-
-```text
-/commit-workflow scope="cli" subject="wire ruff/mypy" body="- update pyproject\n- fix B008 and E501"
+```
+${input:body}
 ```
 
-If your client doesn’t support direct prompt invocation, open the YAML file and ask Copilot to run the described workflow.
+5) Commit: `git commit -m "<message>"`
+
+Constraints:
+- Do not push.
+- If there are no changes to commit, say so and exit.
+- Never skip the lint/test steps.

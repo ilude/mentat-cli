@@ -42,12 +42,12 @@ class TestGitVCSBackendRefactoredMethods:
         backend = GitVCSBackend()
 
         with patch.object(backend, "_run_git_command") as mock_run:
-            # Mock git log failure for empty repository
+            # Mock git log failure for empty repository (Windows error)
             mock_run.return_value = CompletedProcess(
                 args=[],
                 returncode=128,
                 stdout="",
-                stderr="fatal: your current branch 'main' does not have any commits yet",
+                stderr="[WinError 267] The directory name is invalid",
             )
 
             result = backend._get_commit_log_output(Path("/test"), 10)

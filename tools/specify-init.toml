@@ -1,0 +1,3 @@
+name = "specify-init"
+description = "Initialize a new Spec-Driven Development project with AI agent commands"
+command = "uvx --from git+https://github.com/github/spec-kit.git specify init"

@@ -1,0 +1,3 @@
+name = "specify-check"
+description = "Check that all required tools for Spec-Driven Development are installed"
+command = "uvx --from git+https://github.com/github/spec-kit.git specify check"

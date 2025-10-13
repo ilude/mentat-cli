@@ -7,6 +7,14 @@ from pathlib import Path
 from typing import Any, List, Optional, Union
 
 from .git_commands import run_git_command
+from .git_helpers import (
+    diff_with_fallback,
+    is_repo_dir,
+    normalize_branches_output,
+    parse_remote_status_output,
+    stash_list_from_output,
+    uncommitted_changes_list,
+)
 from .git_parsing import (
     get_commit_count,
     get_commit_files,
@@ -89,13 +97,11 @@ class GitVCSBackend(BaseVCSBackend):
 
     def is_repository(self, path: Optional[Path] = None) -> bool:
         path = path or self._path
+        # Prefer a fast filesystem check, fall back to git invocation
+        if is_repo_dir(path):
+            return True
         try:
-            if not path.exists() or not path.is_dir():
-                return False
-            if (path / ".git").exists():
-                return True
-            result = run_git_command(path, ["rev-parse", "--git-dir"])
-            return result.returncode == 0
+            return run_git_command(path, ["rev-parse", "--git-dir"]).returncode == 0
         except Exception:
             return False
 
@@ -140,12 +146,7 @@ class GitVCSBackend(BaseVCSBackend):
         path = path or self._path
         if not self.is_repository(path):
             return []
-        res = run_git_command(path, ["diff", "--name-only", "HEAD"])
-        if res.returncode != 0:
-            res = run_git_command(path, ["diff", "--name-only"])
-        if res.returncode == 0:
-            return [line.strip() for line in res.stdout.splitlines() if line.strip()]
-        return []
+        return uncommitted_changes_list(path)
 
     def get_recent_commits(self, path: Optional[Path] = None, count: int = 10) -> List[CommitInfo]:
         path = path or self._path
@@ -172,38 +173,18 @@ class GitVCSBackend(BaseVCSBackend):
         res = run_git_command(path, args)
         if res.returncode != 0:
             return []
-        commits: List[CommitInfo] = []
-        for line in res.stdout.strip().splitlines():
-            if not line.strip():
-                continue
-            parts = line.split("|", 4)
-            if len(parts) >= 5:
-                h, an, ae, dt, msg = parts
-                commits.append(
-                    CommitInfo(
-                        hash=h,
-                        author=an,
-                        date=dt,
-                        message=msg,
-                        files_changed=[file_path],
-                        author_name=an,
-                        author_email=ae,
-                    )
-                )
+
+        # Reuse the existing parser and attach the file_path to each commit
+        commits = parse_commit_log_output(res.stdout)
+        for c in commits:
+            c.files_changed = [file_path]
         return commits
 
     def get_diff(self, path: Optional[Path] = None, file_path: Optional[str] = None) -> str:
         path = path or self._path
         if not self.is_repository(path):
             return ""
-        args: List[str] = ["diff", "HEAD"]
-        if file_path:
-            args += ["--", file_path]
-        res = run_git_command(path, args)
-        if res.returncode != 0:
-            args = ["diff"] + (["--", file_path] if file_path else [])
-            res = run_git_command(path, args)
-        return res.stdout if res.returncode == 0 else ""
+        return diff_with_fallback(path, file_path)
 
     def get_commit_history(self, path: Optional[Path] = None, limit: int = 10) -> List[CommitInfo]:
         return self.get_recent_commits(path or self._path, count=limit)
@@ -260,12 +241,7 @@ class GitVCSBackend(BaseVCSBackend):
         res = run_git_command(path, ["remote", "-v"])
         if res.returncode != 0 or not res.stdout.strip():
             return {"has_remote": False}
-        remotes: dict[str, str] = {}
-        for line in res.stdout.splitlines():
-            parts = line.split()
-            if len(parts) >= 2:
-                remotes[parts[0]] = parts[1]
-        return {"has_remote": bool(remotes), "remotes": remotes}
+        return parse_remote_status_output(res.stdout)
 
     def get_branches(self, path: Optional[Path] = None) -> List[str]:
         path = path or self._path
@@ -274,14 +250,7 @@ class GitVCSBackend(BaseVCSBackend):
         res = run_git_command(path, ["branch", "-a"])
         if res.returncode != 0:
             return []
-        branches: List[str] = []
-        for line in res.stdout.splitlines():
-            b = line.strip()
-            if b.startswith("* "):
-                b = b[2:]
-            if b and not b.startswith("(") and not b.startswith("HEAD"):
-                branches.append(b)
-        return branches
+        return normalize_branches_output(res.stdout)
 
     def get_repository_info(self, path: Optional[Path] = None) -> dict:
         path = path or self._path
@@ -308,7 +277,7 @@ class GitVCSBackend(BaseVCSBackend):
         res = run_git_command(path, ["stash", "list"])
         if res.returncode != 0:
             return []
-        return [line.strip() for line in res.stdout.splitlines() if line.strip()]
+        return stash_list_from_output(res.stdout)
 
     def create_stash(self, path: Optional[Path] = None, message: str = "") -> bool:
         path = path or self._path

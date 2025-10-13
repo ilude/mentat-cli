@@ -45,20 +45,35 @@ def get_commit_files(path: Path, commit_hash: str) -> list[str]:
     return [f.strip() for f in res.stdout.splitlines() if f.strip()]
 
 
+def _extract_untracked_from_line(line: str) -> Optional[str]:
+    """Return the untracked file path from a porcelain status line or None."""
+    if not line.startswith("??"):
+        return None
+    parts = line.split(maxsplit=1)
+    return parts[1] if len(parts) == 2 else None
+
+
+def _extract_staged_from_line(line: str) -> Optional[StagedFile]:
+    """Return a StagedFile if the line represents a staged/changed file, else None."""
+    if line.startswith("??"):
+        return None
+    if len(line) <= 3:
+        return None
+    code = line[:2]
+    if not code or code[0] == " ":
+        return None
+    return StagedFile(path=line[3:], status=code.strip())
+
+
 def parse_git_status_output(output: str) -> VCSStatus:
     lines = [line.strip() for line in output.splitlines() if line.strip()]
-    untracked_files: List[str] = []
-    staged: List[Any] = []
-    for line in lines:
-        if line.startswith("??"):
-            parts = line.split(maxsplit=1)
-            if len(parts) == 2:
-                untracked_files.append(parts[1])
-        else:
-            code = line[:2]
-            if code[0] != " ":
-                staged.append(StagedFile(path=line[3:], status=code.strip()))
+    untracked_files = [u for ln in lines if (u := _extract_untracked_from_line(ln))]
+
+    staged = [s for ln in lines if (s := _extract_staged_from_line(ln))]
+
+    # Any non-untracked line counts as uncommitted
     uncommitted = len(lines) - len(untracked_files)
+
     return VCSStatus(
         current_branch=None,
         uncommitted_changes=uncommitted,
@@ -77,23 +92,12 @@ def parse_git_status(
     res = run_git_command(path, ["status", "--porcelain"])
     if res.returncode != 0:
         raise VCSOperationError(f"Git status failed: {res.stderr}")
-    lines = [line for line in res.stdout.splitlines()]
-    untracked: List[str] = []
-    staged: List[Any] = []
-    uncommitted = 0
-    for line in lines:
-        if not line.strip():
-            continue
-        if line.startswith("??"):
-            parts = line.split(maxsplit=1)
-            if len(parts) == 2:
-                untracked.append(parts[1])
-            continue
-        code = line[:2]
-        file_path = line[3:] if len(line) > 3 else ""
-        if code[0] != " ":
-            staged.append(StagedFile(path=file_path, status=code.strip()))
-        uncommitted += 1
+
+    status = parse_git_status_output(res.stdout)
+    # parse_git_status is expected to return (untracked_files, staged_files, uncommitted_count)
+    untracked = status.untracked_files if isinstance(status.untracked_files, list) else []
+    staged = status.staged_files
+    uncommitted = status.uncommitted_changes
     return untracked, staged, uncommitted
 
 

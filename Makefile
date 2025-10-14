@@ -46,7 +46,7 @@ clean:
 	find . -type f -name "*.pyc" -delete 2>/dev/null || true
 	find . -type d -name "__pycache__" -delete 2>/dev/null || true
 	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
-	rm -rf .coverage .htmlcov/ .pytest_cache/ dist/ build/
+	rm -rf .coverage .htmlcov/ .pytest_cache/ .ruff_cache/ .mypy_cache/ dist/ build/
 	@echo "Clean completed!"
 
 lint: typecheck format

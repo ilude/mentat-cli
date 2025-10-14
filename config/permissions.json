@@ -1,0 +1,29 @@
+{
+  "safety_mode": "confirm",
+  "allow_patterns": [
+    "ls",
+    "cat *",
+    "echo *",
+    "pwd",
+    "whoami",
+    "git status",
+    "git log*",
+    "git diff*",
+    "git branch*"
+  ],
+  "deny_patterns": [
+    "rm -rf*",
+    "sudo *",
+    "chmod 777*",
+    "dd if=*",
+    "format *",
+    "del /s*",
+    "rmdir /s*",
+    "> /dev/*"
+  ],
+  "approval_scopes": {
+    "once": [],
+    "session": [],
+    "persistent": []
+  }
+}

@@ -3,11 +3,12 @@
 Agent-driven CLI to orchestrate tools via simple TOML specs. Designed for clarity and extension with clean architecture, clear separation of reads vs writes, and dependency inversion.
 
 ## 🌟 Unique Features & Differentiators
-- Minimal, testable core; easy to reason about and extend
-- Tool specs are plain TOML files; filesystem repo by default, swappable via protocol
-- CLI with explicit Commands/Queries wired through buses
-- Clear configuration model and TOML config
-- Focus on simplicity: spawns external processes predictably
+- Mentat Engine: a minimal, testable core that’s easy to reason about and extend
+- Mentat Tool Catalog: simple tool specs (TOML) discoverable from the filesystem
+- MTSP-ready: designed to evolve into the Mentat Tool Server Protocol (roadmap)
+- CLI wired through Command/Query buses for predictable flows
+- Straightforward configuration using TOML
+- Predictable process execution (spawns external commands with safe defaults)
 - Scripted quality checks (lint, tests)
 
 ## 🧩 Common Capabilities
@@ -17,20 +18,20 @@ Agent-driven CLI to orchestrate tools via simple TOML specs. Designed for clarit
 - Git-friendly project layout and smoke tests
 
 ## 🏗️ Architecture Overview
-Mentat follows ports-and-adapters with a thin CLI surface.
+Mentat follows ports-and-adapters with a thin CLI surface and Mentat-branded layers.
 
-- Core (contracts and buses)
+- Mentat Engine (core contracts and buses)
 	- Command, Query, and Result value types
 	- CommandBus (dispatch) and QueryBus (ask)
 - App (use-cases)
 	- Request/response DTOs and handlers for commands/queries
-- Infrastructure (adapters)
-	- ToolRepository protocol with a filesystem implementation
+- Tool Catalog (adapter)
+	- ToolRepository protocol with a filesystem-backed implementation
 	- Executes external processes as child commands
 - Config
 	- Configuration models and a TOML loader
 - IoC
-	- A minimal container wires repositories and handlers to the buses
+	- Minimal container wires repositories and handlers to the buses
 - CLI
 	- Exposes `mentat` commands and dispatches to buses
 
@@ -47,7 +48,7 @@ Data flow examples
 - `src/mentat/app/` – Commands/Queries DTOs and handlers
 - `tests/` – Smoke tests for CLI and buses
 
-## 🧰 Tool Specification (TOML)
+## 🧰 Mentat Tool Catalog (TOML)
 Define tools under `tools/` (or set `tools_dir` in `config/mentat.toml`).
 
 Example `tools/echo.toml`:
@@ -65,6 +66,11 @@ Minimal config (`config/mentat.toml`):
 # tools_dir can be a relative or absolute path
 # tools_dir = "tools"
 ```
+
+Roadmap naming
+- Project config: `.mentat/config.*`
+- Tool registry: `.mentat/tools.*` (supersedes filesystem-only discovery)
+These names align with broader Mentat conventions while remaining backward-compatible.
 
 ## 🚀 Quickstart
 
@@ -100,6 +106,12 @@ Add a use-case
 Swap infrastructure
 - Implement the `ToolRepository` protocol (e.g., HTTP/DB-backed)
 - Register it in the container; no changes to core/app required
+
+## 🧭 Mentat Concepts (Roadmap)
+- Safety Modes: `auto`, `confirm` (default), and `readonly` for controlled execution
+- AGENT.md: project manifest for behavior/style rules automatically ingested at session start
+- Prompt Templates: reusable prompts under `.mentat/prompts/` with `/command` invocation in interactive mode
+- Reason–Act–Verify Loop: structured cycle for transparency and safe automation
 
 ## 🧭 Comparative Positioning
 For how Mentat relates to other CLIs (Copilot, Claude Code, Gemini, etc.), see `docs/ReferenceImplementations.md`.

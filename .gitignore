@@ -11,9 +11,8 @@ __pycache__/
 dist/
 build/
 *.egg-info/
+.coverage/
 
-# VS Code
-.vscode/
 
 # uv
 .venv/

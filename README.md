@@ -1,41 +1,54 @@
 # Mentat CLI
 
-Agent-driven CLI to orchestrate tools. Follows SOLID, CQRS, and IoC with a simple, extensible design.
+Agent-driven CLI to orchestrate tools via simple TOML specs. Designed for clarity and extension with clean architecture, clear separation of reads vs writes, and dependency inversion.
 
-## Features
-- Typer-based CLI
-- Commands/Queries wired via buses
-- Filesystem tool repository reading TOML specs
+## 🌟 Unique Features & Differentiators
+- Minimal, testable core; easy to reason about and extend
+- Tool specs are plain TOML files; filesystem repo by default, swappable via protocol
+- CLI with explicit Commands/Queries wired through buses
+- Clear configuration model and TOML config
+- Focus on simplicity: spawns external processes predictably
+- Scripted quality checks (lint, tests)
 
-## Quickstart (using uv)
+## 🧩 Common Capabilities
+- Natural-language friendly CLI verbs (tools, run)
+- Reads/writes local files required by tools (scoped to tool execution)
+- Non-interactive CI-friendly workflow via single commands
+- Git-friendly project layout and smoke tests
 
-Prerequisites: Python 3.12+ and uv installed.
+## 🏗️ Architecture Overview
+Mentat follows ports-and-adapters with a thin CLI surface.
 
-```pwsh
-# Install dependencies
-uv sync
+- Core (contracts and buses)
+	- Command, Query, and Result value types
+	- CommandBus (dispatch) and QueryBus (ask)
+- App (use-cases)
+	- Request/response DTOs and handlers for commands/queries
+- Infrastructure (adapters)
+	- ToolRepository protocol with a filesystem implementation
+	- Executes external processes as child commands
+- Config
+	- Configuration models and a TOML loader
+- IoC
+	- A minimal container wires repositories and handlers to the buses
+- CLI
+	- Exposes `mentat` commands and dispatches to buses
 
-# Run CLI help
-uv run mentat --help
+Data flow examples
+1) `mentat tools` → QueryBus → list tools via `ToolRepository`
+2) `mentat run <tool> -- <args>` → CommandBus → execute tool command → return exit code/stdout/stderr
 
-# List tools (from default ./tools)
-uv run mentat tools
-
-# Run a tool by name with arguments
-uv run mentat run echo -- "Hello from Mentat"
-```
-
-## Project Layout
-- `src/mentat/cli.py` – Typer entrypoint
-- `src/mentat/core/` – CQRS contracts and buses
+## 🗂️ Project Layout
+- `src/mentat/cli.py` – Typer entrypoint and bus wiring
+- `src/mentat/core/` – CQRS contracts (`contracts.py`) and buses (`bus.py`)
 - `src/mentat/ioc/` – Minimal IoC container
-- `src/mentat/config/` – Pydantic config model and TOML loader
-- `src/mentat/infrastructure/` – ToolRepository protocol and FS impl
-- `src/mentat/app/` – Commands/queries DTOs and handlers
+- `src/mentat/config/` – Pydantic config + TOML loader
+- `src/mentat/infrastructure/` – Ports and adapters (filesystem tool repo)
+- `src/mentat/app/` – Commands/Queries DTOs and handlers
 - `tests/` – Smoke tests for CLI and buses
 
-## Tools
-Define tools as TOML files under `tools/` (or configure `config/mentat.toml`).
+## 🧰 Tool Specification (TOML)
+Define tools under `tools/` (or set `tools_dir` in `config/mentat.toml`).
 
 Example `tools/echo.toml`:
 
@@ -45,19 +58,55 @@ description = "Echo arguments"
 command = "python -c \"import sys; print(' '.join(sys.argv[1:]))\""
 ```
 
-## Config
-Default config path: `config/mentat.toml`.
+## 🔧 Configuration
+Minimal config (`config/mentat.toml`):
 
 ```toml
-# config/mentat.toml
 # tools_dir can be a relative or absolute path
 # tools_dir = "tools"
 ```
 
-## Testing
+## 🚀 Quickstart
+
 ```pwsh
-uv run pytest -q
+# Run CLI help
+mentat --help
+
+# List tools (from default ./tools)
+mentat tools
+
+# Run a tool by name with arguments
+mentat run echo -- "Hello from Mentat"
 ```
+
+## 🛠️ Development
+Quality checks:
+
+```pwsh
+make check
+```
+
+## 🧱 Extending Mentat
+Add a tool
+1) Create a TOML spec in `tools/`
+2) `uv run mentat tools` to verify
+3) `uv run mentat run <name> -- <args>` to execute
+
+Add a use-case
+1) Define a DTO in `app/commands.py` or `app/queries.py`
+2) Implement in `app/command_handlers.py` or `app/query_handlers.py`
+3) Register in `ioc/container.py` and expose via `cli.py`
+
+Swap infrastructure
+- Implement the `ToolRepository` protocol (e.g., HTTP/DB-backed)
+- Register it in the container; no changes to core/app required
+
+## 🧭 Comparative Positioning
+For how Mentat relates to other CLIs (Copilot, Claude Code, Gemini, etc.), see `docs/ReferenceImplementations.md`.
+
+## 📓 Style Notes
+- Small, single-purpose functions; clarity over cleverness
+- Keep configuration straightforward (TOML), keep adapters thin
 
 ## License
 MIT

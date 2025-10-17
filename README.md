@@ -17,7 +17,25 @@ Agent-driven CLI to orchestrate tools via simple TOML specs. Designed for clarit
 - Non-interactive CI-friendly workflow via single commands
 - Git-friendly project layout and smoke tests
 
-## 🏗️ Architecture Overview
+## � Why we’re building Mentat
+Developers need a terminal-native assistant that understands repository context, respects safety boundaries, and remains open and extensible. Mentat aims to bring conversational, context-aware help directly to the command line without forcing an IDE or a single vendor’s stack. We emphasize:
+- Open by design and self-hostable
+- Abstraction over implementation (storage, VCS, providers)
+- Shell-first ergonomics
+- Safety and approval before actions
+- Extensibility through a simple tool catalog and a protocol roadmap
+- Human-centric control at every step
+
+## 🧭 End goals
+What success looks like for Mentat:
+- Context-aware code generation, refactoring, and navigation from the CLI
+- Safe execution via approvals and clear audit trails
+- Pluggable storage, VCS, and model providers
+- Rich interactive mode (TUI) for multi-turn collaboration (roadmap)
+- Project-aware behavior via manifests (AGENT.md) and prompt templates (roadmap)
+- A thriving ecosystem of community tools (MTSP) and integrations (roadmap)
+
+## �🏗️ Architecture Overview
 Mentat follows ports-and-adapters with a thin CLI surface and Mentat-branded layers.
 
 - Mentat Engine (core contracts and buses)

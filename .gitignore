@@ -1,6 +1,6 @@
 .env
 .specstory/
-
+*.log
 
 # Python
 __pycache__/

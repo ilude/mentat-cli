@@ -55,6 +55,19 @@ class OpenAIProvider(BaseAIProvider):
             client_kwargs["base_url"] = config["base_url"]
 
         self.client = self.openai_async(**client_kwargs)
+        # Prepare optional synchronous client attribute for model listing (may be absent)
+        self.sync_client: Optional[Any] = None
+        # Also try to create a synchronous client if available for listing models
+        try:
+            from openai import OpenAI as SyncOpenAI
+
+            try:
+                self.sync_client = SyncOpenAI(**client_kwargs)
+            except Exception:
+                # Some environments may not support the sync client constructor
+                self.sync_client = None
+        except Exception:
+            self.sync_client = None
 
     def get_type(self) -> ProviderType:
         """Get provider type."""
@@ -69,6 +82,8 @@ class OpenAIProvider(BaseAIProvider):
             max_context_length=128000,  # GPT-4 context window
             supported_formats=["json", "text"],
         )
+
+    # list_models implemented later in file (kept as a single implementation)
 
     async def complete(
         self,
@@ -209,3 +224,33 @@ class OpenAIProvider(BaseAIProvider):
             return response is not None
         except Exception:
             return False
+
+    def list_models(self) -> List[str]:
+        """List available OpenAI models.
+
+        Returns:
+            List of available model IDs
+        """
+        # Common OpenAI models - fallback list when API listing isn't available
+        models = [
+            "gpt-4o",
+            "gpt-4-turbo",
+            "gpt-4-turbo-preview",
+            "gpt-4",
+            "gpt-4-32k",
+            "gpt-3.5-turbo",
+            "gpt-3.5-turbo-16k",
+        ]
+
+        # Prefer reusing the synchronous client if it was constructed at init time
+        try:
+            if self.sync_client is not None:
+                response = self.sync_client.models.list()
+                api_models = [m.id for m in response.data]
+                if api_models:
+                    return sorted(api_models)
+        except Exception:
+            # Silently ignore listing permission or transport errors and fall back
+            pass
+
+        return sorted(models)

@@ -1,18 +1,45 @@
 # Copilot Instructions — Mentat CLI Project
 
+## CRITICAL: Virtual Environment
+**Before running ANY terminal commands:** Check if the terminal prompt includes `(.venv)`. If it does NOT show `(.venv)` in the prompt, you MUST run:
+```powershell
+.venv\Scripts\Activate.ps1
+```
+This activates the Python virtual environment. Without this, Python package imports will fail and commands will not work.
+
+## Testing During Development
+**When making code changes:**
+- Run targeted tests during development to iterate quickly: `pytest tests/unit/test_providers/ -v` or `pytest tests/unit/test_ioc/ -v`
+- Only run `make check` as a final verification step to ensure nothing else was broken
+- `make check` runs full test suite (1500+ tests), type checking, and formatting — use sparingly during iteration
+- Use `-k` flag to run specific tests: `pytest -k test_name -v`
+- Use `--tb=short` for cleaner error output: `pytest tests/ -v --tb=short`
+
+Examples:
+```bash
+# Run only model provider tests
+pytest tests/unit/test_providers/test_model_listing.py -v
+
+# Run only tests matching a pattern
+pytest -k "model" -v
+
+# Final check before committing
+make check
+```
+
 ## Context & Purpose  
 This repository is for **Mentat CLI**, an agent-driven CLI tool built in **Python + uv**.  
 It should follow the principles:  
 - **SOLID** (single responsibility, open/closed, etc.)  
 - **CQRS** (separate Commands vs Queries)  
 - **Inversion of Control / IoC** (dependency injection)  
-- **DRY (don’t repeat yourself)**  
+- **DRY (don't repeat yourself)**  
 - **Simplicity and flexibility over complexity**  
 
 We use **TOML** for configuration (less whitespace ambiguity).  
 We will not integrate with VSCode or any specific editor directly (Copilot is an external assist).  
 
-When asked to scaffold code, create directories and files exactly (with `src/mentat`, `config`, `core`, `ioc`, `app`, `infrastructure`, `tests` etc.). Use `pyproject.toml` targeting uv.  
+When asked to scaffold code, create directories and files exactly (with `src/mentat`, `config`, `core`, `ioc`, `app`, `infrastructure`, `tests` etc.). Use `pyproject.toml` targeting uv.
 
 ## File & Directory Rules
 

@@ -57,3 +57,38 @@ When you generate or suggest files:
 ---
 
 You can save these instructions in `.github/copilot-instructions.md` (repository-wide instructions) or in `.github/instructions/mentat.instructions.md`. Copilot will automatically apply them to code generation in this project. :contentReference[oaicite:0]{index=0}  
+
+---
+
+## Operational Rules (merged)
+
+The following operational rules apply to this repository and complement the guidance above. Keep them short, actionable, and repository-specific.
+
+### Commit Etiquette
+- Do not stage, commit, or push unless explicitly asked by the user.
+- When the user asks to commit, follow `.github/prompts/commit.prompt.md` strictly:
+	- Run pre-commit quality gates (`make check`) and fix issues before committing.
+	- Commit all changes so the working tree is clean at the end.
+	- Use Conventional Commits; keep subjects concise and imperative.
+	- Do not push by default (this repo’s policy). Push only if the user explicitly requests it.
+
+### Agent Rules Checklist
+- **Working directory:** Assume you are in the project root (`c:\Projects\Personal\mentat-cli`) unless evidence suggests otherwise. Only `cd` once at the start of a terminal session if needed; do not `cd` repeatedly for each command.
+- Safety first: never exfiltrate or fetch secrets from environment or internet; don't print secrets.
+- Prefer existing automation (Makefile targets, project scripts) over bespoke commands.
+- Keep edits narrowly scoped; avoid unrelated reformatting or whitespace churn.
+- Be explicit about assumptions and anything that affects runtime, security, or cost.
+- Avoid long-running background processes unless requested; always state how to stop them (e.g., Ctrl+C).
+- Do not truncate command output unless the user asks; preserve output for auditing during debugging.
+- Present commands in code fences and use the correct shell for this workspace (PowerShell/pwsh on Windows).
+- Wrap repository paths and symbols in backticks (e.g., `src/mentat/cli.py`).
+
+### Output & Formatting
+- Keep responses concise by default; prefer skimmable bullets and short paragraphs.
+- Avoid heavy tables unless explicitly requested.
+- When documenting help or examples, prefer copy-paste friendly commands and one command per line.
+
+### UI Libraries (Rich/Textual)
+- Use Rich for styled console output (tables, progress bars, markdown, logs).
+- Use Textual for interactive TUI experiences when appropriate (dashboards, panels, live interactivity).
+- Introduce these incrementally; keep tests green and avoid breaking existing CLI behavior.

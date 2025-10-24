@@ -36,7 +36,8 @@ class AnthropicProvider(BaseAIProvider):
 
             anthropic = importlib.import_module("anthropic")
         except Exception:  # pragma: no cover - import errors are handled gracefully
-            logger.exception("Failed to import anthropic SDK")
+            # Be quiet by default in user-facing CLIs; keep details at debug level.
+            logger.debug("Failed to import anthropic SDK", exc_info=True)
             return None
 
         client: Optional[Any] = None

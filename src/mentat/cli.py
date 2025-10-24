@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import typer
+
+from mentat.providers.anthropic_provider import AnthropicProvider
 
 from .app import ListTools, RunTool, handle_list_tools, handle_run_tool
 from .config import load_config
 from .core import CommandBus, QueryBus
 from .infrastructure import FsToolRepository
 from .ioc import Container
-from mentat.providers.anthropic_provider import AnthropicProvider
 
 app = typer.Typer(add_completion=False, help="Mentat CLI — an agent-driven tool orchestrator")
 
@@ -39,11 +40,12 @@ def _maybe_repl(ctx: typer.Context) -> None:
     typer.echo("Mentat interactive — type a prompt to send to the default provider (Anthropic).")
     typer.echo("Commands: run <tool> [args...], help, exit")
 
-    from mentat.providers.interfaces import Message, MessageRole
-    import shlex
     import asyncio
+    import shlex
 
-    def _resolve_provider():
+    from mentat.providers.interfaces import Message, MessageRole
+
+    def _resolve_provider() -> Optional[Any]:
         for key in ("provider", "provider.anthropic"):
             try:
                 return container.resolve(key)
@@ -129,6 +131,7 @@ def _maybe_repl(ctx: typer.Context) -> None:
             typer.echo(f"Provider error: {exc}")
             continue
 
+
 # Define Typer defaults at module scope to avoid calling in function defaults (ruff B008)
 TOOLS_DIR_OPTION = typer.Option(None, help="Path to tools directory")
 NAME_ARGUMENT = typer.Argument(..., help="Tool name")
@@ -176,9 +179,7 @@ def bootstrap(tools_dir: Optional[Path] = None) -> Container:
     def _make_anthropic() -> AnthropicProvider:
         cfg_dict = {}
         if anth_cfg is not None:
-            cfg_dict = {
-                k: v for k, v in anth_cfg.dict().items() if v is not None
-            }
+            cfg_dict = {k: v for k, v in anth_cfg.dict().items() if v is not None}
         return AnthropicProvider(config=cfg_dict)
 
     container.register_factory("provider.anthropic", _make_anthropic)
@@ -230,19 +231,19 @@ def ask(
         prov = container.resolve(key)
     except KeyError:
         typer.echo(f"Provider not found: {provider}")
-        raise typer.Exit(code=2)
+        raise typer.Exit(code=2) from None
 
     # Import interfaces locally to avoid top-level asyncio interactions
-    from mentat.providers.interfaces import Message, MessageRole
-
     import asyncio
+
+    from mentat.providers.interfaces import Message, MessageRole
 
     try:
         resp = asyncio.run(prov.complete([Message(role=MessageRole.USER, content=prompt)]))
         typer.echo(resp.content)
     except Exception as exc:  # pragma: no cover - runtime/provider errors
         typer.echo(str(exc))
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from exc
 
 
 @app.command(name="debug-provider")
@@ -272,7 +273,7 @@ def debug_provider(
         prov = container.resolve(key)
     except KeyError:
         typer.echo(f"Provider not found: {provider}")
-        raise typer.Exit(code=2)
+        raise typer.Exit(code=2) from None
 
     # Masked API key preview
     raw = os.environ.get("MENTAT_ANTHROPIC_API_KEY")
@@ -299,11 +300,30 @@ def debug_provider(
 
     # Inspect likely methods
     candidates = [
-        ("client.completions.create", lambda: getattr(getattr(client, "completions", None), "create", None)),
-        ("client.responses.create", lambda: getattr(getattr(client, "responses", None), "create", None)),
-        ("client.messages.create", lambda: getattr(getattr(client, "messages", None), "create", None)),
-        ("client.chat.completions.create", lambda: getattr(getattr(getattr(client, 'chat', None), 'completions', None), 'create', None)),
-        ("client.chat.messages.create", lambda: getattr(getattr(getattr(client, 'chat', None), 'messages', None), 'create', None)),
+        (
+            "client.completions.create",
+            lambda: getattr(getattr(client, "completions", None), "create", None),
+        ),
+        (
+            "client.responses.create",
+            lambda: getattr(getattr(client, "responses", None), "create", None),
+        ),
+        (
+            "client.messages.create",
+            lambda: getattr(getattr(client, "messages", None), "create", None),
+        ),
+        (
+            "client.chat.completions.create",
+            lambda: getattr(
+                getattr(getattr(client, "chat", None), "completions", None), "create", None
+            ),
+        ),
+        (
+            "client.chat.messages.create",
+            lambda: getattr(
+                getattr(getattr(client, "chat", None), "messages", None), "create", None
+            ),
+        ),
     ]
 
     for label, getter in candidates:
@@ -319,8 +339,8 @@ def debug_provider(
         doc = (fn.__doc__ or "").strip().splitlines()[:3]
         if doc:
             typer.echo("  doc: ")
-            for l in doc:
-                typer.echo("    " + l)
+            for line in doc:
+                typer.echo("    " + line)
 
     # Try to list models if available
     try:
@@ -331,7 +351,9 @@ def debug_provider(
                 ids = []
                 try:
                     for m in models:
-                        mid = getattr(m, "id", None) or (m.get("id") if isinstance(m, dict) else None)
+                        mid = getattr(m, "id", None) or (
+                            m.get("id") if isinstance(m, dict) else None
+                        )
                         if mid:
                             ids.append(mid)
                 except TypeError:
@@ -339,7 +361,9 @@ def debug_provider(
                         data = models.get("data") or models.get("models")
                         if isinstance(data, list):
                             for m in data:
-                                mid = getattr(m, "id", None) or (m.get("id") if isinstance(m, dict) else None)
+                                mid = getattr(m, "id", None) or (
+                                    m.get("id") if isinstance(m, dict) else None
+                                )
                                 if mid:
                                     ids.append(mid)
                 typer.echo(f"Discovered models: {ids}")
@@ -358,6 +382,7 @@ def debug_provider(
         typer.echo(f"provider.test_connection(): {ok}")
     except Exception as e:
         typer.echo(f"provider.test_connection() failed: {e}")
+
 
 if __name__ == "__main__":
     app()

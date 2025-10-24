@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple
-import os
 import logging
+import os
+from typing import Any, Dict, List, Optional, Tuple
 
 from mentat.providers.interfaces import (
     BaseAIProvider,
@@ -32,7 +32,9 @@ class AnthropicProvider(BaseAIProvider):
     def _create_client(api_key: str) -> Optional[Any]:
         """Instantiate the Anthropic SDK client using the simplest available surface."""
         try:
-            import anthropic  # type: ignore
+            import importlib
+
+            anthropic = importlib.import_module("anthropic")
         except Exception:  # pragma: no cover - import errors are handled gracefully
             logger.exception("Failed to import anthropic SDK")
             return None
@@ -82,7 +84,9 @@ class AnthropicProvider(BaseAIProvider):
                     data = resp.get("data") or resp.get("models")
                     if isinstance(data, list):
                         for item in data:
-                            mid = getattr(item, "id", None) or (item.get("id") if isinstance(item, dict) else None)
+                            mid = getattr(item, "id", None) or (
+                                item.get("id") if isinstance(item, dict) else None
+                            )
                             if mid:
                                 models.append(str(mid))
             return models
@@ -95,7 +99,9 @@ class AnthropicProvider(BaseAIProvider):
         return self._get_available_model_ids()
 
     @staticmethod
-    def _prepare_messages_payload(messages: List[Message]) -> Tuple[Optional[str], List[Dict[str, Any]]]:
+    def _prepare_messages_payload(
+        messages: List[Message],
+    ) -> Tuple[Optional[str], List[Dict[str, Any]]]:
         """Split system messages and format the rest for Anthropic's Messages API."""
         system_text: Optional[str] = None
         structured: List[Dict[str, Any]] = []
@@ -103,7 +109,9 @@ class AnthropicProvider(BaseAIProvider):
         for msg in messages:
             role = getattr(msg.role, "value", str(msg.role))
             if role == "system":
-                system_text = msg.content if system_text is None else f"{system_text}\n{msg.content}"
+                system_text = (
+                    msg.content if system_text is None else f"{system_text}\n{msg.content}"
+                )
                 continue
             mapped_role = "user" if role == "user" else "assistant"
             structured.append(
@@ -351,7 +359,7 @@ class AnthropicProvider(BaseAIProvider):
         text = getattr(resp_obj, "completion", None) or getattr(resp_obj, "text", None)
         if text is None and hasattr(resp_obj, "content"):
             try:
-                content_blocks = getattr(resp_obj, "content")
+                content_blocks = resp_obj.content
                 texts: List[str] = []
                 for block in content_blocks:
                     block_text = getattr(block, "text", None)
@@ -389,18 +397,26 @@ class AnthropicProvider(BaseAIProvider):
             if usage_obj is None and hasattr(resp_obj, "__getitem__"):
                 usage_obj = resp_obj["usage"]
             if usage_obj:
-                prompt_tokens = _lookup(usage_obj, "prompt_tokens") or _lookup(usage_obj, "input_tokens")
-                completion_tokens = _lookup(usage_obj, "completion_tokens") or _lookup(usage_obj, "output_tokens")
+                prompt_tokens = _lookup(usage_obj, "prompt_tokens") or _lookup(
+                    usage_obj, "input_tokens"
+                )
+                completion_tokens = _lookup(usage_obj, "completion_tokens") or _lookup(
+                    usage_obj, "output_tokens"
+                )
                 total_tokens = _lookup(usage_obj, "total_tokens")
                 usage = {
                     "prompt_tokens": int(prompt_tokens or 0),
                     "completion_tokens": int(completion_tokens or 0),
-                    "total_tokens": int(total_tokens or (prompt_tokens or 0) + (completion_tokens or 0)),
+                    "total_tokens": int(
+                        total_tokens or (prompt_tokens or 0) + (completion_tokens or 0)
+                    ),
                 }
         except Exception:
             usage = {}
 
-        finish_reason = getattr(resp_obj, "finish_reason", None) or getattr(resp_obj, "stop_reason", None)
+        finish_reason = getattr(resp_obj, "finish_reason", None) or getattr(
+            resp_obj, "stop_reason", None
+        )
         if finish_reason is None:
             try:
                 finish_reason = resp_obj["finish_reason"]
@@ -412,10 +428,15 @@ class AnthropicProvider(BaseAIProvider):
         if finish_reason is None:
             finish_reason = "stop"
 
-        return CompletionResponse(content=text, model=model_in_use, usage=usage, finish_reason=finish_reason)
+        return CompletionResponse(
+            content=text, model=model_in_use, usage=usage, finish_reason=finish_reason
+        )
 
     async def test_connection(self) -> bool:
-        """Quick availability check. Attempts a no-op if possible, otherwise checks client presence."""
+        """Quick availability check.
+
+        Attempts a no-op if possible; otherwise reports client availability conservatively.
+        """
         if self.client is None:
             return False
         # If the SDK provides a simple ping or models.list, try to call it defensively

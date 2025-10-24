@@ -85,6 +85,42 @@ Minimal config (`config/mentat.toml`):
 # tools_dir = "tools"
 ```
 
+## Anthropic (Claude) provider
+
+To use Anthropic (Claude) as a provider, set the API key in the environment or in `config/mentat.toml` under a `providers.anthropic` section.
+
+Environment variable (recommended):
+
+```pwsh
+$env:MENTAT_ANTHROPIC_API_KEY = 'sk-...'
+```
+
+Optionally set model in `config/mentat.toml`:
+
+```toml
+[providers.anthropic]
+api_key = ""
+model = "claude-2.1"
+```
+
+Install the SDK locally if you want to run integration tests or call Anthropic directly:
+
+```pwsh
+pip install anthropic
+```
+
+Run the integration test (gated):
+
+```pwsh
+# $env:MENTAT_ANTHROPIC_API_KEY = 'sk-...'
+# $env:RUN_CLAUDE_TESTS = 'true'
+C:/Projects/Personal/mentat-cli/.venv/Scripts/python.exe -m pytest tests/integration/test_anthropic_integration.py -q
+```
+
+Notes:
+- Integration tests are intentionally gated to avoid accidental API usage and costs. Do not set `RUN_CLAUDE_TESTS` in shared CI unless you intend to run the tests.
+- The provider factory is registered in the container under the key `provider.anthropic` and will read config from `MentatConfig.providers.anthropic` if present.
+
 Roadmap naming
 - Project config: `.mentat/config.*`
 - Tool registry: `.mentat/tools.*` (supersedes filesystem-only discovery)

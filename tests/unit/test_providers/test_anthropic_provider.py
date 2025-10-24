@@ -2,7 +2,6 @@
 
 import sys
 import types
-import pytest
 
 from mentat.providers.anthropic_provider import AnthropicProvider
 from mentat.providers.interfaces import Message, MessageRole
@@ -47,7 +46,7 @@ class DummyClientWithModels(DummyClient):
 def test_complete_with_mocked_sdk(monkeypatch):
     # Create a fake anthropic module and Client class
     fake = types.ModuleType("anthropic")
-    setattr(fake, "Client", DummyClient)
+    fake.Client = DummyClient
     sys.modules["anthropic"] = fake
 
     provider = AnthropicProvider(config={"api_key": "fake-key", "model": "claude-test"})
@@ -66,7 +65,7 @@ def test_complete_with_mocked_sdk(monkeypatch):
 
 def test_test_connection_with_mocked_sdk(monkeypatch):
     fake = types.ModuleType("anthropic")
-    setattr(fake, "Client", DummyClient)
+    fake.Client = DummyClient
     sys.modules["anthropic"] = fake
 
     provider = AnthropicProvider(config={"api_key": "fake-key"})
@@ -79,7 +78,7 @@ def test_test_connection_with_mocked_sdk(monkeypatch):
 
 def test_list_models(monkeypatch):
     fake = types.ModuleType("anthropic")
-    setattr(fake, "Client", DummyClientWithModels)
+    fake.Client = DummyClientWithModels
     sys.modules["anthropic"] = fake
 
     provider = AnthropicProvider(config={"api_key": "fake-key"})

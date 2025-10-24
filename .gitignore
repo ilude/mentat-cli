@@ -1,3 +1,7 @@
+.env
+.specstory/
+
+
 # Python
 __pycache__/
 *.pyc

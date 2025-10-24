@@ -243,14 +243,27 @@ class OpenAIProvider(BaseAIProvider):
         ]
 
         # Prefer reusing the synchronous client if it was constructed at init time
+        def _filter(model_ids: List[str]) -> List[str]:
+            """Keep commonly used, modern chat-capable models."""
+            preferred_prefixes = ("gpt-5", "gpt-4", "gpt-3.5")
+            filtered = [mid for mid in model_ids if mid.startswith(preferred_prefixes)]
+            # Deduplicate while preserving order
+            seen: set[str] = set()
+            unique: list[str] = []
+            for mid in filtered:
+                if mid not in seen:
+                    unique.append(mid)
+                    seen.add(mid)
+            return unique
+
         try:
             if self.sync_client is not None:
                 response = self.sync_client.models.list()
                 api_models = [m.id for m in response.data]
                 if api_models:
-                    return sorted(api_models)
+                    return sorted(_filter(api_models))
         except Exception:
             # Silently ignore listing permission or transport errors and fall back
             pass
 
-        return sorted(models)
+        return sorted(_filter(models))

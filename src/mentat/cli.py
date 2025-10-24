@@ -57,90 +57,30 @@ def _maybe_repl(ctx: typer.Context) -> None:
     except Exception:
         pass
 
-    # Start REPL
+    # Start Textual REPL
     container = bootstrap()
+    cfg = container.resolve("config")
+    default_provider = "anthropic"
+    default_model = ""
 
-    # Import REPL utilities
-    import shlex
+    providers_cfg = getattr(cfg, "providers", None)
+    anthropic_cfg = getattr(providers_cfg, "anthropic", None) if providers_cfg else None
+    if anthropic_cfg and getattr(anthropic_cfg, "model", None):
+        default_model = anthropic_cfg.model or ""
 
-    from mentat.tui.status import REPLStatus
+    provider_preview = resolve_provider(container, default_provider)
+    if provider_preview is not None and not default_model:
+        default_model = getattr(provider_preview, "model", "") or ""
 
-    # Initialize REPL status tracker
-    repl_status = REPLStatus(default_provider="anthropic", default_model="")
+    from mentat.tui.repl_app import MentatReplApp
 
-    def _resolve_provider(provider_name: str = "anthropic") -> Optional[Any]:
-        """Resolve a provider by name (retained for compatibility)."""
-        return resolve_provider(container, provider_name)
-
-    # Display welcome message and status bar
-    typer.echo("Mentat interactive — type a prompt to send to the AI provider.")
-    prov_preview = _resolve_provider("anthropic")
-    if prov_preview is not None:
-        default_model = getattr(prov_preview, "model", "<unknown>")
-        repl_status.set_provider_and_model("anthropic", default_model)
-
-    typer.echo("")
-    repl_status.display()
-    typer.echo("")
-    typer.echo("Commands: /model (select provider/model), /list (list models), /help (help)")
-    typer.echo("")
-
-    while True:
-        try:
-            line = input("mentat> ")
-        except (EOFError, KeyboardInterrupt):
-            typer.echo("")
-            break
-        if not line:
-            continue
-        cmd = line.strip()
-        if cmd.lower() in ("exit", "quit", ":q"):
-            break
-        if cmd.lower() in ("help", "h", "?", "/help"):
-            typer.echo("Commands:")
-            typer.echo("  /model       - Select AI provider and model interactively")
-            typer.echo("  /list        - List available models for current provider")
-            typer.echo("  /help        - Show this help message")
-            typer.echo("  run <tool>   - Execute a tool")
-            typer.echo("  exit, quit   - Exit the REPL")
-            typer.echo("")
-            continue
-
-        # run <tool> ...
-        if cmd.startswith("run "):
-            parts = shlex.split(cmd)
-            if len(parts) >= 2:
-                name = parts[1]
-                args = parts[2:]
-                bus = container.resolve("command_bus")
-                from mentat.app.commands import RunTool as RunToolDTO
-
-                res = bus.dispatch(RunToolDTO(name=name, args=args))
-                if res.ok and res.value is not None:
-                    result = res.value
-                    if result.stdout:
-                        typer.echo(result.stdout.rstrip("\n"))
-                    if result.stderr:
-                        typer.echo(result.stderr.rstrip("\n"), err=True)
-                    typer.echo(f"[exit {result.exit_code}]")
-                else:
-                    typer.echo(res.error or "Unknown error")
-            else:
-                typer.echo("Usage: run <tool> [args...]")
-            continue
-
-        # /model - Interactive provider/model selector
-        if cmd == "/model":
-            handle_command_model(container, repl_status)
-            continue
-
-        if cmd == "/list":
-            handle_command_list(container, repl_status.provider)
-            continue
-
-        # Default: send to provider
-        handle_default_send(container, repl_status.provider, cmd)
-        continue
+    repl_app = MentatReplApp(
+        container=container,
+        default_provider=default_provider,
+        default_model=default_model,
+        tools_dir=str(cfg.tools_dir),
+    )
+    repl_app.run()
 
 
 def resolve_provider(container: "Container", provider_name: str) -> Optional[Any]:
@@ -150,88 +90,6 @@ def resolve_provider(container: "Container", provider_name: str) -> Optional[Any
         return container.resolve(key)
     except Exception:
         return None
-
-
-def handle_command_model(container: "Container", repl_status: Any) -> None:
-    """Show the interactive provider/model selector and update status."""
-    from mentat.tui.model_selector import show_model_selector
-
-    logger.debug("User requested /model command")
-    providers = ["anthropic", "openai"]
-    logger.debug("Available providers: %s", providers)
-
-    def get_models_for_provider(provider_name: str) -> list[str]:
-        logger.debug("get_models_for_provider called for: %s", provider_name)
-        prov = resolve_provider(container, provider_name)
-        if prov is None:
-            logger.warning("Could not resolve provider: %s", provider_name)
-            return []
-        if hasattr(prov, "list_models") and callable(prov.list_models):
-            try:
-                logger.debug("Calling list_models() on %s provider", provider_name)
-                models = prov.list_models()
-                if isinstance(models, list) and models:
-                    logger.debug("Provider %s returned %d models", provider_name, len(models))
-                    return [str(m) for m in models]
-            except Exception as e:  # pragma: no cover - provider SDK issues
-                logger.error(
-                    "Error calling list_models() on %s: %s", provider_name, e, exc_info=True
-                )
-        model = getattr(prov, "model", None)
-        logger.debug("Falling back to model attribute for %s: %s", provider_name, model)
-        return [str(model)] if model else []
-
-    def on_model_selected(provider_name: str, model_name: str) -> None:
-        logger.info("Model selected: provider=%s, model=%s", provider_name, model_name)
-        repl_status.set_provider_and_model(provider_name, model_name)
-
-    logger.debug("Showing model selector")
-    show_model_selector(providers, get_models_for_provider, on_model_selected)
-    logger.debug("Model selector exited")
-
-    # After selector exits, display the new selection
-    typer.echo("")
-    typer.echo(f"✓ Selected: Provider={repl_status.provider} Model={repl_status.model}")
-    repl_status.display()
-    typer.echo("")
-
-
-def handle_command_list(container: "Container", provider_name: str) -> None:
-    """List available models for the current provider."""
-    prov = resolve_provider(container, provider_name)
-    if prov is None:
-        typer.echo(f"Provider '{provider_name}' not configured")
-        return
-    if not hasattr(prov, "list_models"):
-        typer.echo("Provider does not support listing models")
-        return
-    try:
-        models = prov.list_models()
-        if not models:
-            typer.echo("No models discovered")
-            return
-        typer.echo("Available models:")
-        for model in models:
-            typer.echo(f"  - {model}")
-    except Exception as e:  # pragma: no cover - provider SDK errors
-        typer.echo(f"Error listing models: {e}")
-
-
-def handle_default_send(container: "Container", provider_name: str, cmd: str) -> None:
-    """Send a prompt to the current provider and print the response."""
-    import asyncio
-
-    from mentat.providers.interfaces import Message, MessageRole
-
-    prov = resolve_provider(container, provider_name)
-    if prov is None:
-        typer.echo(f"Provider '{provider_name}' not configured")
-        return
-    try:
-        resp = asyncio.run(prov.complete([Message(role=MessageRole.USER, content=cmd)]))
-        typer.echo(resp.content)
-    except Exception as exc:  # pragma: no cover - runtime/provider errors
-        typer.echo(f"Provider error: {exc}")
 
 
 # Define Typer defaults at module scope to avoid calling in function defaults (ruff B008)

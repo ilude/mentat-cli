@@ -62,6 +62,7 @@ class ModelSelectorScreen(Screen):
         providers: list[str],
         get_models: Callable[[str], list[str]],
         on_select: Callable[[str, str], None],
+        dismiss_mode: Literal["exit", "pop"] = "exit",
     ) -> None:
         """Initialize model selector.
 
@@ -74,6 +75,7 @@ class ModelSelectorScreen(Screen):
         self.providers = providers
         self.get_models = get_models
         self.on_select = on_select
+        self._dismiss_mode: Literal["exit", "pop"] = dismiss_mode
         self.selected_provider: Optional[str] = None
         self._models: Optional[list[str]] = None
         # Track whether we're selecting providers or models
@@ -212,7 +214,7 @@ class ModelSelectorScreen(Screen):
 
             selected_model = self._models[current_index]
             self.on_select(self.selected_provider, selected_model)
-            self.app.exit()
+            self._dismiss()
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         """Respond to ListView selection (Enter/activate) reliably.
@@ -242,7 +244,7 @@ class ModelSelectorScreen(Screen):
                 return
             selected_model = self._models[current_index]
             self.on_select(self.selected_provider, selected_model)
-            self.app.exit()
+            self._dismiss()
 
     def _transition_to_model_selection(self) -> None:
         """Transition from provider selection to model selection."""
@@ -319,6 +321,16 @@ class ModelSelectorScreen(Screen):
 
     def action_cancel(self) -> None:
         """Handle cancel."""
+        self._dismiss()
+
+    def _dismiss(self) -> None:
+        """Close the selector according to the configured dismiss mode."""
+        if self._dismiss_mode == "pop" and hasattr(self.app, "pop_screen"):
+            try:
+                self.app.pop_screen()
+                return
+            except Exception:  # pragma: no cover - defensive fallback
+                logger.error("Failed to pop model selector screen", exc_info=True)
         self.app.exit()
 
     BINDINGS = [
@@ -345,7 +357,14 @@ def show_model_selector(
         """Wrapper app for model selector."""
 
         def on_mount(self) -> None:
-            self.push_screen(ModelSelectorScreen(providers, get_models, on_select))
+            self.push_screen(
+                ModelSelectorScreen(
+                    providers,
+                    get_models,
+                    on_select,
+                    dismiss_mode="exit",
+                )
+            )
 
     app = ModelSelectorApp()
     app.run()

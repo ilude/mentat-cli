@@ -29,16 +29,18 @@ def _maybe_repl(ctx: typer.Context) -> None:
 
     # Auto-load .env if python-dotenv is available to pick up local secrets
     try:  # pragma: no cover - optional developer convenience
-        from dotenv import load_dotenv
+        import importlib
 
-        load_dotenv()
+        _mod = importlib.import_module("dotenv")
+        _fn = getattr(_mod, "load_dotenv", None)
+        if callable(_fn):
+            _fn()
     except Exception:
         pass
 
     # Start REPL
     container = bootstrap()
     typer.echo("Mentat interactive — type a prompt to send to the default provider (Anthropic).")
-    typer.echo("Commands: run <tool> [args...], help, exit")
 
     import asyncio
     import shlex
@@ -72,7 +74,6 @@ def _maybe_repl(ctx: typer.Context) -> None:
         if cmd.lower() in ("exit", "quit", ":q"):
             break
         if cmd.lower() in ("help", "h", "?"):
-            typer.echo("Commands: run <tool> [args...], help, exit")
             typer.echo("Typing any other text will send it as a prompt to the default provider.")
             continue
 
@@ -147,9 +148,12 @@ def bootstrap(tools_dir: Optional[Path] = None) -> Container:
     # Auto-load .env if python-dotenv is available so non-interactive commands
     # (like `mentat ask`) also pick up local environment variables from a .env file.
     try:  # pragma: no cover - optional developer convenience
-        from dotenv import load_dotenv
+        import importlib
 
-        load_dotenv()
+        _mod = importlib.import_module("dotenv")
+        _fn = getattr(_mod, "load_dotenv", None)
+        if callable(_fn):
+            _fn()
     except Exception:
         pass
     cfg = load_config()

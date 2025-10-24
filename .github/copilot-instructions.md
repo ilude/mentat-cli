@@ -65,7 +65,7 @@ You can save these instructions in `.github/copilot-instructions.md` (repository
 The following operational rules apply to this repository and complement the guidance above. Keep them short, actionable, and repository-specific.
 
 ### Commit Etiquette
-- Do not stage, commit, or push unless explicitly asked by the user.
+- **Do NOT stage, commit, or push unless explicitly asked by the user!!!**
 - When the user asks to commit, follow `.github/prompts/commit.prompt.md` strictly:
 	- Run pre-commit quality gates (`make check`) and fix issues before committing.
 	- Commit all changes so the working tree is clean at the end.

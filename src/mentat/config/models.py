@@ -11,8 +11,15 @@ class AnthropicConfig(BaseModel):
     model: Optional[str] = None
 
 
+class OpenAIConfig(BaseModel):
+    api_key: Optional[str] = None
+    model: Optional[str] = None
+    organization: Optional[str] = None
+
+
 class ProvidersConfig(BaseModel):
     anthropic: Optional[AnthropicConfig] = None
+    openai: Optional[OpenAIConfig] = None
 
 
 class MentatConfig(BaseModel):

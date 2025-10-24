@@ -32,7 +32,7 @@ class OpenAIProvider(BaseAIProvider):
 
         # Initialize OpenAI client
         try:
-            from openai import AsyncOpenAI  # type: ignore[import-not-found]
+            from openai import AsyncOpenAI
 
             self.openai_async = AsyncOpenAI
         except ImportError as exc:

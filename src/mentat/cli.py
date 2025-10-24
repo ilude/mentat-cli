@@ -161,6 +161,7 @@ def bootstrap(tools_dir: Optional[Path] = None) -> Container:
         _mod = importlib.import_module("dotenv")
         _fn = getattr(_mod, "load_dotenv", None)
         if callable(_fn):
+            # Load from project root (.env file should be there)
             _fn()
     except Exception:
         pass
@@ -201,12 +202,25 @@ def bootstrap(tools_dir: Optional[Path] = None) -> Container:
 
     container.register_factory("provider.anthropic", _make_anthropic)
 
-    # Register RunCommand handler
-    def _make_run_command_handler() -> Any:
-        prov = container.resolve("provider.anthropic")
-        return handle_run_command(prov)
+    # Register OpenAI provider factory
+    openai_cfg = None
+    try:
+        openai_cfg = cfg.providers.openai
+    except Exception:
+        openai_cfg = None
 
-    cmd_bus.register(RunCommand, _make_run_command_handler())
+    def _make_openai() -> Any:
+        from mentat.providers.openai import OpenAIProvider
+
+        cfg_dict = {}
+        if openai_cfg is not None:
+            cfg_dict = {k: v for k, v in openai_cfg.dict().items() if v is not None}
+        return OpenAIProvider(config=cfg_dict)
+
+    container.register_factory("provider.openai", _make_openai)
+
+    # Note: RunCommand handler is NOT registered here because it depends on
+    # which provider the user selects. It's registered dynamically in the prompt command.
 
     return container
 
@@ -327,6 +341,18 @@ def prompt(
     try:
         container = bootstrap(tools_dir)
         bus: CommandBus = container.resolve("command_bus")
+
+        # Resolve the selected provider
+        provider_key = f"provider.{provider_name}"
+        try:
+            selected_provider = container.resolve(provider_key)
+        except KeyError:
+            typer.echo(f"Provider not found: {provider_name}", err=True)
+            raise typer.Exit(code=2) from None
+
+        # Register the RunCommand handler with the selected provider
+        handler = handle_run_command(selected_provider)
+        bus.register(RunCommand, handler)
 
         # Dispatch the RunCommand through the command bus
         cmd = RunCommand(prompt=text, format=format_type, output_file=output_file)

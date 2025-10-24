@@ -13,12 +13,21 @@ class ToolSpec:
     command: str
 
 
+@dataclass(slots=True)
+class ToolExecutionResult:
+    exit_code: int
+    stdout: str
+    stderr: str
+
+
 class ToolRepository(Protocol):
     def list_tools(self) -> Iterable[ToolSpec]: ...
 
     def get_tool(self, name: str) -> ToolSpec | None: ...
 
     def run_tool(self, name: str, args: List[str]) -> int: ...
+
+    def execute_tool(self, name: str, args: List[str]) -> ToolExecutionResult: ...
 
 
 def _load_tool_toml(path: Path) -> ToolSpec | None:

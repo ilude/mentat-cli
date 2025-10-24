@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from mentat.infrastructure.fs_tool_repository import FsToolRepository
-from mentat.infrastructure.repositories import ToolSpec, _load_tool_toml
+from mentat.infrastructure.repositories import ToolExecutionResult, ToolSpec, _load_tool_toml
 
 
 class TestToolSpec:
@@ -321,6 +321,46 @@ command = "python -c 'import sys; print(sys.argv)'"
 
         assert exit_code == 0
         mock_run.assert_called_once_with(["echo"])
+
+    @patch("subprocess.run")
+    def test_execute_tool_success(self, mock_run, repository):
+        """Test executing tool with captured output."""
+        mock_process = Mock()
+        mock_process.returncode = 0
+        mock_process.stdout = "hello world\n"
+        mock_process.stderr = ""
+        mock_run.return_value = mock_process
+
+        result = repository.execute_tool("echo_tool", ["hello", "world"])
+
+        assert isinstance(result, ToolExecutionResult)
+        assert result.exit_code == 0
+        assert result.stdout == "hello world\n"
+        assert result.stderr == ""
+        mock_run.assert_called_once_with(["echo", "hello", "world"], capture_output=True, text=True)
+
+    @patch("subprocess.run")
+    def test_execute_tool_failure(self, mock_run, repository):
+        """Test executing tool that returns non-zero exit code."""
+        mock_process = Mock()
+        mock_process.returncode = 1
+        mock_process.stdout = ""
+        mock_process.stderr = "error"
+        mock_run.return_value = mock_process
+
+        result = repository.execute_tool("echo_tool", [])
+
+        assert result.exit_code == 1
+        assert result.stdout == ""
+        assert result.stderr == "error"
+        mock_run.assert_called_once_with(["echo"], capture_output=True, text=True)
+
+    def test_execute_tool_nonexistent(self, repository):
+        """Test executing nonexistent tool returns sentinel result."""
+        result = repository.execute_tool("missing", [])
+
+        assert result.exit_code == 2
+        assert "not found" in result.stderr.lower()
 
     def test_repository_with_nested_toml_files(self, temp_dir):
         """Test that repository doesn't find TOML files in subdirectories."""

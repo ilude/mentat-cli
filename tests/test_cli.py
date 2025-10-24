@@ -53,6 +53,8 @@ def test_run_tool(tmp_path: Path):
     )
     # run returns the tool's exit code; Typer exit codes don't print, but we expect success
     assert result.exit_code == 0
+    assert "hello world" in result.stdout
+    assert not result.stderr
 
 
 def test_tools_command_with_query_error(tmp_path: Path):
@@ -84,8 +86,9 @@ def test_run_command_with_nonexistent_tool(tmp_path: Path):
     # Should exit with error code when tool doesn't exist
     assert result.exit_code != 0  # Allow any non-zero exit code
     # Should provide helpful error message
-    if result.stdout:
-        assert "error" in result.stdout.lower() or "unknown error" in result.stdout.lower()
+    message = (result.stderr or result.stdout).lower()
+    if message:
+        assert "not found" in message or "error" in message or "unknown error" in message
 
 
 def test_run_command_with_failing_tool(tmp_path: Path):
@@ -97,6 +100,7 @@ def test_run_command_with_failing_tool(tmp_path: Path):
 
     # Should propagate tool's exit code
     assert result.exit_code == 42
+    assert result.stdout.strip() == ""
 
 
 def test_bootstrap_with_custom_tools_dir(tmp_path: Path):

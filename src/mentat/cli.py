@@ -86,8 +86,13 @@ def _maybe_repl(ctx: typer.Context) -> None:
                 from mentat.app.commands import RunTool as RunToolDTO
 
                 res = bus.dispatch(RunToolDTO(name=name, args=args))
-                if res.ok:
-                    typer.echo(f"Tool exited: {res.value}")
+                if res.ok and res.value is not None:
+                    result = res.value
+                    if result.stdout:
+                        typer.echo(result.stdout.rstrip("\n"))
+                    if result.stderr:
+                        typer.echo(result.stderr.rstrip("\n"), err=True)
+                    typer.echo(f"[exit {result.exit_code}]")
                 else:
                     typer.echo(res.error or "Unknown error")
             else:
@@ -197,8 +202,9 @@ def tools(tools_dir: Optional[Path] = TOOLS_DIR_OPTION) -> None:
     if not res.ok:
         typer.echo(res.error or "Unknown error")
         raise typer.Exit(code=1)
-    for name in sorted(res.value or []):
-        typer.echo(name)
+    tool_infos = res.value or []
+    for info in sorted(tool_infos, key=lambda t: t.name.lower()):
+        typer.echo(info.name)
 
 
 @app.command()
@@ -210,10 +216,17 @@ def run(
     container = bootstrap(tools_dir)
     bus: CommandBus = container.resolve("command_bus")
     res = bus.dispatch(RunTool(name=name, args=list(args)))
-    if not res.ok:
+    if not res.ok or res.value is None:
         typer.echo(res.error or "Unknown error")
         raise typer.Exit(code=1)
-    raise typer.Exit(code=int(res.value or 0))
+
+    result = res.value
+    if result.stdout:
+        typer.echo(result.stdout.rstrip("\n"))
+    if result.stderr:
+        typer.echo(result.stderr.rstrip("\n"), err=True)
+
+    raise typer.Exit(code=int(result.exit_code))
 
 
 @app.command()

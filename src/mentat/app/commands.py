@@ -46,3 +46,15 @@ class ApprovePattern(Command):
 
     pattern: str
     scope: str = "session"  # once, session, persistent
+
+
+@dataclass(slots=True)
+class RunCommand(Command):
+    """Execute a single AI-assisted development task non-interactively.
+
+    This is the core non-interactive execution command for User Story 1.
+    """
+
+    prompt: str
+    format: str = "text"  # json, text, markdown
+    output_file: Optional[str] = None

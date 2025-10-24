@@ -7,10 +7,18 @@ import typer
 
 from mentat.providers.anthropic_provider import AnthropicProvider
 
-from .app import ListTools, RunTool, handle_list_tools, handle_run_tool
+from .app import (
+    ListTools,
+    RunCommand,
+    RunTool,
+    handle_list_tools,
+    handle_run_command,
+    handle_run_tool,
+)
 from .config import load_config
 from .core import CommandBus, QueryBus
 from .infrastructure import FsToolRepository
+from .infrastructure.formatters import OutputFormatter, OutputWriter
 from .ioc import Container
 
 app = typer.Typer(add_completion=False, help="Mentat CLI — an agent-driven tool orchestrator")
@@ -192,6 +200,14 @@ def bootstrap(tools_dir: Optional[Path] = None) -> Container:
         return AnthropicProvider(config=cfg_dict)
 
     container.register_factory("provider.anthropic", _make_anthropic)
+
+    # Register RunCommand handler
+    def _make_run_command_handler() -> Any:
+        prov = container.resolve("provider.anthropic")
+        return handle_run_command(prov)
+
+    cmd_bus.register(RunCommand, _make_run_command_handler())
+
     return container
 
 
@@ -260,6 +276,82 @@ def ask(
         typer.echo(resp.content)
     except Exception as exc:  # pragma: no cover - runtime/provider errors
         typer.echo(str(exc))
+        raise typer.Exit(code=1) from exc
+
+
+@app.command()
+def prompt(
+    text: str = typer.Argument(..., help="Development task prompt"),
+    format: str = typer.Option(
+        "text",
+        "--format",
+        "-f",
+        help="Output format (text, json, markdown)",
+    ),
+    output: Optional[str] = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Output file (if not specified, writes to stdout)",
+    ),
+    provider: str = typer.Option(
+        "anthropic",
+        "--provider",
+        "-p",
+        help="AI provider to use (e.g. 'anthropic')",
+    ),
+    tools_dir: Optional[Path] = TOOLS_DIR_OPTION,
+) -> None:
+    """Execute a single AI-assisted development task non-interactively.
+
+    This is the core non-interactive command (User Story 1). It takes a prompt,
+    sends it to the selected AI provider, formats the response, and optionally
+    saves it to a file.
+
+    Examples:
+        mentat prompt "create a Python function to parse JSON"
+        mentat prompt "analyze this code for bugs" -f json -o analysis.json
+        mentat prompt "write tests" --provider anthropic -f markdown
+    """
+    # Normalize inputs when called programmatically
+    format_type = format if isinstance(format, str) else "text"
+    output_file = output if isinstance(output, str) else None
+    provider_name = provider if isinstance(provider, str) else "anthropic"
+
+    # Validate format
+    valid_formats = ("text", "json", "markdown")
+    if format_type not in valid_formats:
+        typer.echo(f"Invalid format '{format_type}'. Must be one of: {', '.join(valid_formats)}")
+        raise typer.Exit(code=2)
+
+    try:
+        container = bootstrap(tools_dir)
+        bus: CommandBus = container.resolve("command_bus")
+
+        # Dispatch the RunCommand through the command bus
+        cmd = RunCommand(prompt=text, format=format_type, output_file=output_file)
+        result = bus.dispatch(cmd)
+
+        if not result.ok or result.value is None:
+            typer.echo(f"Error: {result.error or 'Unknown error'}", err=True)
+            raise typer.Exit(code=1)
+
+        # Format the response
+        response = result.value
+        formatted_output = OutputFormatter.format(response, format_type)
+
+        # Write output
+        OutputWriter.write(formatted_output, output_file)
+
+        raise typer.Exit(code=0)
+
+    except typer.Exit:
+        raise
+    except KeyError as exc:
+        typer.echo(f"Provider not found: {provider_name}", err=True)
+        raise typer.Exit(code=2) from exc
+    except Exception as exc:
+        typer.echo(f"Error: {exc}", err=True)
         raise typer.Exit(code=1) from exc
 
 

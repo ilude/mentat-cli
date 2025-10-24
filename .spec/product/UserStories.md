@@ -36,7 +36,7 @@ This document lists and describes the core user stories for **Mentat CLI**, cove
 ---
 
 ## US-04: Extensible VCS and Command Interfaces
-> As a developer, I want Mentat’s version control and execution layers to be pluggable, so I can use alternative systems or specialized workflows.
+> As a developer, I want Mentat's version control and execution layers to be pluggable, so I can use alternative systems or specialized workflows.
 
 **Acceptance Criteria:**
 - Abstract interfaces for both VCS and Command Execution layers.
@@ -140,4 +140,3 @@ This document lists and describes the core user stories for **Mentat CLI**, cove
 **Document Version:** vNext (October 2025)
 
 **Authoring Context:** Extracted and expanded from Mentat CLI PRD vNext.
-

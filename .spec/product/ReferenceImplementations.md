@@ -94,7 +94,7 @@ The following sections describe what distinguishes each tool from the rest.
 **Unique Features:**
 - **Apache-2 Open Source** – fully open under permissive license.  
 - **Extremely Large Context Windows** – benefits from Gemini model architecture.  
-- **Built-in ReAct Agent Loop** – “reason and act” design for multi-tool execution.  
+- **Built-in ReAct Agent Loop** – "reason and act" design for multi-tool execution.  
 - **Shared Backend with Gemini Code Assist (IDE)** – unified logic across tools.  
 - **Free Tier with Generous Quotas** – preview tier includes daily request limits.  
 - **Google Cloud Integration** – aligns with gcloud / Vertex AI ecosystems.  
@@ -158,4 +158,3 @@ Across these tools, the shared mission is clear: to make software development co
 - **OpenCode** offers community-driven flexibility and independence.  
 
 Each balances openness, integration, and control differently—but together they represent the emerging standard for AI-powered development environments.
-

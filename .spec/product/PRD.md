@@ -85,7 +85,7 @@
 
 ### 3.8 Project Manifest (`AGENT.md`)
 - Mentat supports the emerging **`AGENT.md` industry standard** for defining project-specific behavior, style, and goals.
-- When present in a repository, this file is automatically parsed and injected into Mentat’s contextual understanding at session start.
+- When present in a repository, this file is automatically parsed and injected into Mentat's contextual understanding at session start.
 
 **Example:**
 ```
@@ -117,7 +117,7 @@ context:
     ├── test.prompt.md
     └── doc.prompt.md
 ```
-- Compatible with VS Code Copilot’s `prompt.md` approach.
+- Compatible with VS Code Copilot's `prompt.md` approach.
 - Templates can include placeholders (`{{file}}`, `{{branch}}`) replaced at runtime.
 - Templates are discoverable via `mentat commands list`.
 
@@ -172,7 +172,7 @@ Mentat CLI draws from the strengths of industry peers:
 - **Copilot:** IDE-level refinement and multi-file awareness  
 - **OpenCode:** TUI-first, provider-agnostic design  
 
-Mentat’s differentiation: a **fully open, extensible, self-hostable CLI platform** that emphasizes developer autonomy and safety.
+Mentat's differentiation: a **fully open, extensible, self-hostable CLI platform** that emphasizes developer autonomy and safety.
 
 ---
 
@@ -195,4 +195,3 @@ Mentat’s differentiation: a **fully open, extensible, self-hostable CLI platfo
 
 **Document Version:** vNext (Merged October 2025)  
 **Authoring Context:** Updated with AGENT.md, Prompt Templates, and Reason–Act–Verify model inclusion.
-

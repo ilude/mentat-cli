@@ -119,3 +119,9 @@ The following operational rules apply to this repository and complement the guid
 - Use Rich for styled console output (tables, progress bars, markdown, logs).
 - Use Textual for interactive TUI experiences when appropriate (dashboards, panels, live interactivity).
 - Introduce these incrementally; keep tests green and avoid breaking existing CLI behavior.
+
+### Markdown Documents
+- **Do NOT create standalone .md files unless explicitly requested by the user.**
+- Focus on creating runnable code, tests, and executable solutions.
+- Use docstrings, comments, and inline documentation in code instead of separate markdown files.
+- If documentation is needed, ask the user first or embed it in docstrings/comments.

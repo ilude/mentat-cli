@@ -7,6 +7,20 @@
 ```
 This activates the Python virtual environment. Without this, Python package imports will fail and commands will not work.
 
+### Troubleshooting: uv sync failed
+If you see this when running `make check` or other commands:
+
+```
+process_begin: CreateProcess(NULL, uv sync --group dev, ...) failed.
+```
+
+Activate the virtual environment first and try again:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+Then re-run your command (e.g., `make check` or `pytest`).
+
 ## Testing During Development
 **When making code changes:**
 - Run targeted tests during development to iterate quickly: `pytest tests/unit/test_providers/ -v` or `pytest tests/unit/test_ioc/ -v`

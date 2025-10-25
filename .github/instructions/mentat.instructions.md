@@ -97,6 +97,22 @@ make check
 
 Commits should only be made when lint, type-check, and tests are clean.
 
+### Troubleshooting: Dev Environment
+
+If you see this error when running `make check` or other tasks:
+
+```
+process_begin: CreateProcess(NULL, uv sync --group dev, ...) failed.
+```
+
+It usually means the virtual environment isn't active. Activate it and retry:
+
+```pwsh
+.venv\Scripts\Activate.ps1
+```
+
+After activation, re-run your command (e.g., `make check` or `pytest`).
+
 ---
 
 ## Example Prompt Patterns for Copilot
